@@ -1,8 +1,9 @@
 version: '3'
 services:
   geth:
-    image: ethereum/client-go:v1.10.25
+    image: ethereum/client-go:v1.11.3
     pull_policy: always
+    restart: unless-stopped
     network_mode: "host"
     volumes:
       - jwt-data:/data/jwt
@@ -24,8 +25,7 @@ services:
       "--pprof.addr=0.0.0.0",
       "--http.api=engine,eth,web3,net,debug",
       "--http.corsdomain=*",
-      "--authrpc.jwtsecret=/data/jwt/jwtsecret",
-      "--override.terminaltotaldifficulty=${TTD}"
+      "--authrpc.jwtsecret=/data/jwt/jwtsecret"
     ]
     expose:
       - "8545"
@@ -35,8 +35,9 @@ services:
       - "30303"
   lighthouse:
     network_mode: "host"
-    image: sigp/lighthouse:v3.5.0
+    image: sigp/lighthouse:v3.5.1
     pull_policy: always
+    restart: unless-stopped
     volumes:
       - geth-data:/data/geth
       - jwt-data:/data/jwt
@@ -47,7 +48,6 @@ services:
         "bn",
         "--network=${LIGHTHOUSE_NETWORK}",
         "--datadir=/data/lighthouse",
-        # "--jwt-secrets=/data/jwt/jwtsecret",
         "--execution-jwt=/data/jwt/jwtsecret",
         "--http",
         "--listen-address=0.0.0.0",
@@ -57,13 +57,12 @@ services:
         "--http-allow-sync-stalled",
         "--merge",
         "--execution-endpoint=http://127.0.0.1:8551",
-        # "--eth1-endpoints=http://127.0.0.1:8545",
         "--metrics",
         "--metrics-address=0.0.0.0",
         "--subscribe-all-subnets",
         "--import-all-attestations",
         "--validator-monitor-auto",
-        "--checkpoint-sync-url=https://prater-checkpoint-sync.stakely.io",
+        "--checkpoint-sync-url=https://goerli.checkpoint-sync.ethpandaops.io",
         "--terminal-total-difficulty-override=${TTD}"
       ]
     expose:
@@ -80,6 +79,7 @@ services:
       - operator-data:/root/.lighthouse
     image: parastate/dvf-operator:${IMAGE_TAG}
     pull_policy: always
+    restart: unless-stopped
     command:
       - /bin/sh
       - -c
@@ -97,9 +97,6 @@ services:
       resources:
         limits:
           memory: 5G
-    # depends_on:
-    #   lighthouse:
-    #     condition: service_started
 
   dvf_key_tool:
     network_mode: "host"
